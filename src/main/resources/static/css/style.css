@@ -1,0 +1,779 @@
+/* ==========================================================================
+   InsightKB 前端样式
+   全部手写，不依赖任何 UI 组件库。
+   主题通过 :root 变量集中控制，想换成深色只需要覆盖这几个变量。
+   ========================================================================== */
+
+:root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --panel-2: #fafbfd;
+    --ink: #0f172a;
+    --ink-2: #475569;
+    --ink-3: #94a3b8;
+    --line: #e5e9ef;
+    --line-2: #eef1f5;
+    --brand: #2563eb;
+    --brand-soft: #eff5ff;
+    --brand-line: #cfe0fd;
+    --green: #059669;
+    --green-soft: #ecfdf5;
+    --amber: #b45309;
+    --amber-soft: #fffbeb;
+    --red: #dc2626;
+    --red-soft: #fef2f2;
+    --radius: 12px;
+    --radius-sm: 8px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+}
+
+body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 14px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ==================== 整体布局 ==================== */
+.app {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* ==================== 左侧栏 ==================== */
+.sidebar {
+    width: 320px;
+    flex: 0 0 320px;
+    background: var(--panel);
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 18px 18px 14px;
+}
+
+.brand-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: var(--brand);
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: .5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 34px;
+}
+
+.brand-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.35;
+}
+
+.brand-text strong {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.brand-text span {
+    font-size: 11.5px;
+    color: var(--ink-3);
+}
+
+/* ---- 上传区 ---- */
+.upload-zone {
+    margin: 4px 14px 0;
+    padding: 18px 14px;
+    border: 1.5px dashed var(--brand-line);
+    border-radius: var(--radius);
+    background: var(--brand-soft);
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .18s, background .18s, transform .18s;
+}
+
+.upload-zone:hover {
+    border-color: var(--brand);
+    background: #e8f1ff;
+}
+
+.upload-zone.dragover {
+    border-color: var(--brand);
+    background: #dfeaff;
+    transform: scale(1.012);
+}
+
+.upload-icon {
+    color: var(--brand);
+    display: flex;
+    justify-content: center;
+    margin-bottom: 6px;
+}
+
+.upload-title {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--brand);
+}
+
+.upload-hint {
+    font-size: 12px;
+    color: var(--ink-2);
+    margin-top: 2px;
+}
+
+.upload-types {
+    font-size: 11px;
+    color: var(--ink-3);
+    margin-top: 6px;
+    letter-spacing: .3px;
+}
+
+/* ---- 上传进度 ---- */
+.upload-progress {
+    margin: 12px 14px 0;
+}
+
+.upload-progress-bar {
+    height: 5px;
+    border-radius: 3px;
+    background: var(--line);
+    overflow: hidden;
+}
+
+.upload-progress-bar i {
+    display: block;
+    height: 100%;
+    width: 0;
+    background: var(--brand);
+    border-radius: 3px;
+    transition: width .2s;
+}
+
+.upload-progress-text {
+    font-size: 11.5px;
+    color: var(--ink-2);
+    margin-top: 5px;
+}
+
+/* ---- 面板标题 ---- */
+.panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 18px 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-2);
+    letter-spacing: .04em;
+}
+
+.counter {
+    background: var(--line-2);
+    color: var(--ink-2);
+    border-radius: 20px;
+    padding: 1px 9px;
+    font-size: 11.5px;
+}
+
+/* ---- 文档列表 ---- */
+.doc-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 10px 12px;
+}
+
+.list-empty {
+    text-align: center;
+    color: var(--ink-3);
+    font-size: 12.5px;
+    padding: 24px 0;
+}
+
+.doc-item {
+    padding: 11px 12px;
+    border-radius: var(--radius-sm);
+    transition: background .15s;
+    position: relative;
+}
+
+.doc-item + .doc-item {
+    margin-top: 2px;
+}
+
+.doc-item:hover {
+    background: var(--panel-2);
+}
+
+.doc-item-name {
+    font-size: 13px;
+    font-weight: 500;
+    word-break: break-all;
+    line-height: 1.5;
+    padding-right: 22px;
+}
+
+.doc-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 5px;
+    font-size: 11.5px;
+    color: var(--ink-3);
+}
+
+.doc-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 7px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.doc-status.processing {
+    background: var(--amber-soft);
+    color: var(--amber);
+}
+
+.doc-status.ready {
+    background: var(--green-soft);
+    color: var(--green);
+}
+
+.doc-status.failed {
+    background: var(--red-soft);
+    color: var(--red);
+}
+
+.doc-delete {
+    position: absolute;
+    top: 10px;
+    right: 8px;
+    width: 20px;
+    height: 20px;
+    border: none;
+    background: none;
+    color: var(--ink-3);
+    cursor: pointer;
+    border-radius: 5px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    line-height: 1;
+    padding: 0;
+}
+
+.doc-item:hover .doc-delete {
+    display: flex;
+}
+
+.doc-delete:hover {
+    background: var(--red-soft);
+    color: var(--red);
+}
+
+.doc-error {
+    font-size: 11.5px;
+    color: var(--red);
+    margin-top: 4px;
+    word-break: break-all;
+}
+
+/* ---- 底部统计 ---- */
+.sidebar-footer {
+    border-top: 1px solid var(--line);
+    padding: 12px 18px 14px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    font-size: 11.5px;
+    color: var(--ink-3);
+    line-height: 2;
+}
+
+.stat-row b {
+    color: var(--ink-2);
+    font-weight: 500;
+    max-width: 165px;
+}
+
+.ellipsis {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ==================== 右侧主区 ==================== */
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: var(--bg);
+}
+
+.topbar {
+    height: 62px;
+    flex: 0 0 62px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 26px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--line);
+}
+
+.topbar h1 {
+    font-size: 15px;
+    margin: 0;
+    font-weight: 600;
+}
+
+.topbar p {
+    margin: 0;
+    font-size: 11.5px;
+    color: var(--ink-3);
+}
+
+.mode-badge {
+    font-size: 11.5px;
+    padding: 4px 11px;
+    border-radius: 20px;
+    background: var(--amber-soft);
+    color: var(--amber);
+    border: 1px solid #f0dfae;
+    font-weight: 500;
+}
+
+/* ---- 消息区 ---- */
+.messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 26px 26px 10px;
+    scroll-behavior: smooth;
+}
+
+.empty-state {
+    max-width: 520px;
+    margin: 60px auto 0;
+    text-align: center;
+    color: var(--ink-2);
+}
+
+.empty-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.empty-sub {
+    font-size: 13px;
+    color: var(--ink-3);
+    margin-top: 6px;
+}
+
+.empty-samples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.sample-chip {
+    font-size: 12.5px;
+    padding: 6px 13px;
+    border-radius: 20px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--ink-2);
+    cursor: pointer;
+    transition: all .15s;
+}
+
+.sample-chip:hover {
+    border-color: var(--brand);
+    color: var(--brand);
+    background: var(--brand-soft);
+}
+
+/* ---- 单条消息 ---- */
+.msg {
+    max-width: 780px;
+    margin: 0 auto 20px;
+    display: flex;
+    gap: 11px;
+}
+
+.msg-avatar {
+    width: 28px;
+    height: 28px;
+    flex: 0 0 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.msg.user .msg-avatar {
+    background: var(--brand);
+    color: #fff;
+}
+
+.msg.assistant .msg-avatar {
+    background: #e2e8f0;
+    color: var(--ink-2);
+}
+
+.msg-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.msg.assistant .msg-body {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 17px;
+}
+
+.msg.user .msg-body {
+    background: var(--brand-soft);
+    border: 1px solid var(--brand-line);
+    border-radius: var(--radius);
+    padding: 11px 15px;
+}
+
+.msg-text {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 13.5px;
+    line-height: 1.78;
+}
+
+.msg-text p {
+    margin: 0 0 9px;
+}
+
+.msg-text p:last-child {
+    margin-bottom: 0;
+}
+
+.msg-text code {
+    background: var(--line-2);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 12.5px;
+    font-family: ui-monospace, Consolas, monospace;
+}
+
+/* 引用角标 */
+.cite {
+    display: inline-block;
+    min-width: 15px;
+    height: 15px;
+    line-height: 15px;
+    text-align: center;
+    padding: 0 4px;
+    margin: 0 1px;
+    border-radius: 4px;
+    background: var(--brand-soft);
+    color: var(--brand);
+    border: 1px solid var(--brand-line);
+    font-size: 10.5px;
+    font-weight: 600;
+    vertical-align: 1px;
+    cursor: pointer;
+    transition: all .15s;
+}
+
+.cite:hover {
+    background: var(--brand);
+    color: #fff;
+}
+
+/* ---- 思考中 ---- */
+.typing {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    height: 18px;
+}
+
+.typing i {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--ink-3);
+    animation: blink 1.3s infinite;
+}
+
+.typing i:nth-child(2) {
+    animation-delay: .18s;
+}
+
+.typing i:nth-child(3) {
+    animation-delay: .36s;
+}
+
+@keyframes blink {
+    0%, 60%, 100% { opacity: .25; }
+    30% { opacity: 1; }
+}
+
+.cursor {
+    display: inline-block;
+    width: 2px;
+    height: 15px;
+    background: var(--brand);
+    vertical-align: -2px;
+    margin-left: 2px;
+    animation: blink-cursor .9s steps(1) infinite;
+}
+
+@keyframes blink-cursor {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+/* ---- 检索片段面板 ---- */
+.sources {
+    margin-top: 13px;
+    border-top: 1px dashed var(--line);
+    padding-top: 11px;
+}
+
+.sources-head {
+    font-size: 11.5px;
+    color: var(--ink-3);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    user-select: none;
+}
+
+.sources-head:hover {
+    color: var(--brand);
+}
+
+.sources-body {
+    margin-top: 9px;
+}
+
+.source-item {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-left: 2px solid var(--brand-line);
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
+    margin-bottom: 7px;
+}
+
+.source-item:last-child {
+    margin-bottom: 0;
+}
+
+.source-item.highlight {
+    border-left-color: var(--brand);
+    background: var(--brand-soft);
+}
+
+.source-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11.5px;
+    color: var(--ink-2);
+    margin-bottom: 5px;
+}
+
+.source-index {
+    background: var(--brand);
+    color: #fff;
+    border-radius: 4px;
+    padding: 0 5px;
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 16px;
+}
+
+.source-score {
+    margin-left: auto;
+    color: var(--ink-3);
+    font-family: ui-monospace, Consolas, monospace;
+}
+
+.trace-rewrite {
+    flex-basis: 100%;
+    color: var(--ink-3);
+    font-size: 11.5px;
+    line-height: 1.5;
+}
+
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ghost-btn {
+    border: 1px solid var(--line);
+    background: transparent;
+    color: var(--ink-2);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 12.5px;
+    cursor: pointer;
+    transition: all .15s;
+}
+
+.ghost-btn:hover {
+    border-color: var(--brand);
+    color: var(--brand);
+}
+
+.source-rank {
+    color: var(--brand);
+    background: #eff6ff;
+    border-radius: 3px;
+    padding: 0 5px;
+    font-size: 10.5px;
+    line-height: 16px;
+    white-space: nowrap;
+}
+
+.source-text {
+    font-size: 12.5px;
+    color: var(--ink-2);
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* ---- Trace ---- */
+.trace {
+    margin-top: 10px;
+    font-size: 11.5px;
+    color: var(--ink-3);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-family: ui-monospace, Consolas, monospace;
+}
+
+.trace b {
+    color: var(--ink-2);
+    font-weight: 500;
+}
+
+.msg-error {
+    color: var(--red);
+    font-size: 12.5px;
+}
+
+/* ---- 输入区 ---- */
+.composer {
+    flex: 0 0 auto;
+    padding: 14px 26px 18px;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+.composer textarea {
+    flex: 1;
+    resize: none;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 11px 14px;
+    font-family: inherit;
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--ink);
+    outline: none;
+    max-height: 150px;
+    transition: border-color .15s, box-shadow .15s;
+    background: var(--panel-2);
+}
+
+.composer textarea:focus {
+    border-color: var(--brand);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .09);
+}
+
+.send-btn {
+    height: 42px;
+    padding: 0 22px;
+    border: none;
+    border-radius: var(--radius);
+    background: var(--brand);
+    color: #fff;
+    font-size: 13.5px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background .15s, opacity .15s;
+    flex: 0 0 auto;
+}
+
+.send-btn:hover:not(:disabled) {
+    background: #1d4ed8;
+}
+
+.send-btn:disabled {
+    background: #c7d2e0;
+    cursor: not-allowed;
+}
+
+/* ---- 滚动条 ---- */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #d8dee7;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #c2cad6;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}

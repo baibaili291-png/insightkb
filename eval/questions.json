@@ -1,0 +1,62 @@
+[
+  {
+    "q": "Model X200 的额定功率是多少",
+    "expected": [{"doc": "设备运维手册-X200.md", "index": 0}],
+    "type": "专有名词"
+  },
+  {
+    "q": "供电电压低于多少会触发欠压保护",
+    "expected": [{"doc": "设备运维手册-X200.md", "index": 1}, {"doc": "设备运维手册-X200.md", "index": 3}],
+    "type": "数值"
+  },
+  {
+    "q": "设备的工作温度范围是多少",
+    "expected": [{"doc": "设备运维手册-X200.md", "index": 0}],
+    "type": "语义"
+  },
+  {
+    "q": "防护等级是多少，能不能露天安装",
+    "expected": [{"doc": "设备运维手册-X200.md", "index": 0}],
+    "type": "语义"
+  },
+  {
+    "q": "点表采集周期最小是多少毫秒",
+    "expected": [{"doc": "设备运维手册-X200.md", "index": 2}],
+    "type": "数值"
+  },
+  {
+    "q": "没有 DHCP 服务器时设备会回退到哪个地址",
+    "expected": [{"doc": "设备运维手册-X200.md", "index": 2}],
+    "type": "语义"
+  },
+  {
+    "q": "MQTT 连接建立后立刻断开是什么原因",
+    "expected": [{"doc": "设备运维手册-X200.md", "index": 3}],
+    "type": "语义"
+  },
+  {
+    "q": "系统日志保留多久",
+    "expected": [{"doc": "设备运维手册-X200.md", "index": 3}],
+    "type": "语义"
+  },
+  {
+    "q": "固件升级大概要几分钟",
+    "expected": [{"doc": "设备运维手册-X200.md", "index": 3}],
+    "type": "语义"
+  },
+  {
+    "q": "本科生一次最多能借几册书",
+    "expected": [{"doc": "test-library.md", "index": 0}],
+    "type": "语义"
+  },
+  {
+    "q": "图书逾期一天要交多少滞纳金",
+    "expected": [{"doc": "test-library.md", "index": 0}],
+    "type": "数值"
+  },
+  {
+    "q": "每位读者最多能同时预约几册",
+    "expected": [{"doc": "test-library.md", "index": 0}],
+    "type": "语义"
+  }
+]

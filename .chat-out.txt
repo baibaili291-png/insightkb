@@ -1,0 +1,82 @@
+data:{"content":"-","type":"delta"}
+
+data:{"content":" Model","type":"delta"}
+
+data:{"content":" X","type":"delta"}
+
+data:{"content":"200","type":"delta"}
+
+data:{"content":" ","type":"delta"}
+
+data:{"content":"的","type":"delta"}
+
+data:{"content":"额定","type":"delta"}
+
+data:{"content":"功率","type":"delta"}
+
+data:{"content":"为","type":"delta"}
+
+data:{"content":" ","type":"delta"}
+
+data:{"content":"18","type":"delta"}
+
+data:{"content":" W","type":"delta"}
+
+data:{"content":" [","type":"delta"}
+
+data:{"content":"1","type":"delta"}
+
+data:{"content":"]","type":"delta"}
+
+data:{"content":"。\n","type":"delta"}
+
+data:{"content":"-","type":"delta"}
+
+data:{"content":" ","type":"delta"}
+
+data:{"content":"供电","type":"delta"}
+
+data:{"content":"电压","type":"delta"}
+
+data:{"content":"低于","type":"delta"}
+
+data:{"content":" ","type":"delta"}
+
+data:{"content":"21","type":"delta"}
+
+data:{"content":".","type":"delta"}
+
+data:{"content":"6","type":"delta"}
+
+data:{"content":" V","type":"delta"}
+
+data:{"content":" ","type":"delta"}
+
+data:{"content":"时会","type":"delta"}
+
+data:{"content":"触发","type":"delta"}
+
+data:{"content":"欠","type":"delta"}
+
+data:{"content":"压","type":"delta"}
+
+data:{"content":"保护","type":"delta"}
+
+data:{"content":"，","type":"delta"}
+
+data:{"content":"导致","type":"delta"}
+
+data:{"content":"设备","type":"delta"}
+
+data:{"content":"反复","type":"delta"}
+
+data:{"content":"重启","type":"delta"}
+
+data:{"content":" [","type":"delta"}
+
+data:{"content":"2","type":"delta"}
+
+data:{"content":"]。","type":"delta"}
+
+data:{"type":"done","retrievalMs":0,"generationMs":572,"totalMs":572,"embeddingModel":"hashing-1024 (mock)","chatModel":"deepseek-chat","retrievalMode":"hybrid","contexts":[{"id":"052f87b305a84cd6#0","docId":"052f87b305a84cd6","docName":"设备运维手册-X200.md","index":0,"preview":"# Model X200 工业网关运维手册 ## 1. 设备概述 Model X200 是面向中型工厂场景设计的工业物联网网关，支持 Modbus RTU、Modbus TCP、OPC UA 与 MQTT 四种协议接入。整机采用无风扇设计，...","text":"# Model X200 工业网关运维手册\n## 1. 设备概述\nModel X200 是面向中型工厂场景设计的工业物联网网关，支持 Modbus RTU、Modbus TCP、OPC UA 与 MQTT 四种协议接入。整机采用无风扇设计，工作温度范围为 -20℃ 至 70℃，防护等级 IP40，必须安装在控制柜内使用，禁止露天安装。\n## 2. 硬件规格\nModel X200 额定功率为 18 W，供电电压为 DC 24 V，允许波动范围 ±10%。设备配备 2 个千兆以太网口、4 路 RS485 串口、1 路 CAN 总线接口。内存为 1 GB DDR4，板载存储 8 GB eMMC，其中 4 GB 用于系统与日志分区。设备序列号位于机身底部铭牌，格式形如 X200-24A-00137。\n## 3. 指示灯含义\n面板共有三个指示灯：PWR 常亮表示供电正常，闪烁表示供电电压低于 21.6 V；RUN 以 1 Hz 频率闪烁表示系统正常运行，快闪 4 Hz 表示正在固件升级，熄灭表示系统未启动；ERR 常亮表示存在未确认的严重告警，需登录管理后台查看事件日志。","score":0.0328,"vectorRank":1,"keywordRank":1},{"id":"052f87b305a84cd6#2","docId":"052f87b305a84cd6","docName":"设备运维手册-X200.md","index":2,"preview":"采集周期三项。采集周期最小为 100 ms，最小周期下建议单点采集、总点数不超过 200，否则会出现采集任务堆积。点表导入后需执行一次\"校验\"，校验通过才会写入运行时。 ## 6. MQTT 上行配置MQTT 上行支持 TLS 1.2 与 ...","text":"采集周期三项。采集周期最小为 100 ms，最小周期下建议单点采集、总点数不超过 200，否则会出现采集任务堆积。点表导入后需执行一次\"校验\"，校验通过才会写入运行时。\n## 6. MQTT 上行配置MQTT 上行支持 TLS 1.2 与 TLS 1.3。开启 TLS 后必须上传 CA 证书，证书过期前 30 天管理后台会弹出提醒。上行 QoS 默认为 1，QoS 2 会显著增加内存占用，仅在计费类数据场景建议使用。心跳间隔默认 60 秒，断线重连采用指数退避，初始 1 秒，最大 60 秒。\n## 7. 常见故障处理\n故障一：设备反复重启。优先排查供电，实测电压低于 21.6 V 时设备会触发欠压保护反复重启，更换电源或加粗供电线径即可解决。\n故障二：采集数据全为零。多为 RS485 接线极性反接，或对端从站地址配置错误，可用后台的\"串口调试\"工具发送读取指令验证。\n故障三：MQTT 连接建立后立即断开。绝大多数是客户端 ID 重复，同一 MQTT Broker 下不允许两个连接使用相同 clientId，需在配置页修改。\n## 8. 固件升级","score":0.0323,"vectorRank":2,"keywordRank":2},{"id":"052f87b305a84cd6#1","docId":"052f87b305a84cd6","docName":"设备运维手册-X200.md","index":1,"preview":"表示供电电压低于 21.6 V；RUN 以 1 Hz 频率闪烁表示系统正常运行，快闪 4 Hz 表示正在固件升级，熄灭表示系统未启动；ERR 常亮表示存在未确认的严重告警，需登录管理后台查看事件日志。## 4. 首次上电与配置 首次上电后，...","text":"表示供电电压低于 21.6 V；RUN 以 1 Hz 频率闪烁表示系统正常运行，快闪 4 Hz 表示正在固件升级，熄灭表示系统未启动；ERR 常亮表示存在未确认的严重告警，需登录管理后台查看事件日志。## 4. 首次上电与配置\n首次上电后，设备默认开启 DHCP 客户端。若网络中不存在 DHCP 服务器，设备会在 90 秒后回退到静态地址 192.168.1.200。管理后台地址为 https://设备地址:8443，默认账号 admin，默认密码印于机身铭牌，首次登录后必须修改。配置完成后需点击\"保存并应用\"，仅保存不会生效。\n## 5. 数据采集点表配置\n点表以 CSV 格式导入，单行最多 5000 条。每条采集点必须指定寄存器地址、数据类型、采集周期三项。采集周期最小为 100 ms，最小周期下建议单点采集、总点数不超过 200，否则会出现采集任务堆积。点表导入后需执行一次\"校验\"，校验通过才会写入运行时。\n## 6. MQTT 上行配置","score":0.0317,"vectorRank":3,"keywordRank":3},{"id":"052f87b305a84cd6#3","docId":"052f87b305a84cd6","docName":"设备运维手册-X200.md","index":3,"preview":"发送读取指令验证。 故障三：MQTT 连接建立后立即断开。绝大多数是客户端 ID 重复，同一 MQTT Broker 下不允许两个连接使用相同 clientId，需在配置页修改。 ## 8. 固件升级固件升级支持本地上传与 OTA 两种方式...","text":"发送读取指令验证。\n故障三：MQTT 连接建立后立即断开。绝大多数是客户端 ID 重复，同一 MQTT Broker 下不允许两个连接使用相同 clientId，需在配置页修改。\n## 8. 固件升级固件升级支持本地上传与 OTA 两种方式。升级前系统会自动校验固件签名，签名不通过的固件包会被拒绝。升级过程中严禁断电，断电会导致 bootloader 损坏，只能返厂维修。升级耗时约 3 至 5 分钟，期间 RUN 灯以 4 Hz 快闪。\n## 9. 日志与诊断\n系统日志保留最近 30 天，单个日志文件超过 50 MB 后自动轮转，最多保留 10 个历史文件。诊断包可在\"系统维护-导出诊断包\"处一键导出，包含点表配置、最近 7 天日志与内核环形缓冲区内容。导出诊断包不会中断采集任务。\n## 10. 安全须知\n禁止在设备运行期间插拔 RS485 端子。清洁设备前必须断开供电，禁止使用液体清洁剂直接喷洒。设备报废时应按电子废弃物处理流程回收，内置纽扣电池需单独取出。任何开盖操作都会导致保修失效。","score":0.0313,"vectorRank":4,"keywordRank":4},{"id":"ee26ec8054a24807#0","docId":"ee26ec8054a24807","docName":"test-library.md","index":0,"preview":"# 图书馆借阅管理规定 ## 借阅权限 本馆读者须凭本人校园卡借阅图书，不得转借他人。本科生一次最多可借阅 8 册，研究生一次最多可借阅 12 册，教职工一次最多可借阅 20 册。校际互借读者凭协议单位出具的证明办理。 ## 借阅期限 普通...","text":"# 图书馆借阅管理规定\n## 借阅权限\n本馆读者须凭本人校园卡借阅图书，不得转借他人。本科生一次最多可借阅 8 册，研究生一次最多可借阅 12 册，教职工一次最多可借阅 20 册。校际互借读者凭协议单位出具的证明办理。\n## 借阅期限\n普通图书借期为 30 天，到期可续借一次，续借期为 30 天，续借需在到期前 3 天内通过本馆网站或服务台办理。教学参考书借期为 7 天，不可续借。热门新书借期为 14 天，不可续借。\n## 逾期处理\n图书逾期未还，每册每天收取滞纳金 0.1 元。逾期超过 60 天的，暂停借阅权限，并按图书原价的两倍赔偿。滞纳金累计上限为每册 30 元。\n## 预约与催还\n已被借出的图书可在线预约，每位读者同时最多预约 3 册。预约到书后保留 7 天，逾期未取自动取消。本馆有权在特殊情况下对已借出图书进行催还，读者应在收到催还通知后 7 天内归还，否则按逾期处理。\n## 赔偿标准\n遗失图书按原书价格的 3 倍赔偿。污损图书视损毁程度收取 10 元至原价两倍的赔偿金。故意撕毁、批注、划线图书的，除按规定赔偿外，暂停借阅权限一学期，并通报所在院系。","score":0.0154,"vectorRank":5,"keywordRank":null}]}
+

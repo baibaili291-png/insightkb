@@ -1,0 +1,119 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: insightkb
+  # --- 持久化（M3）---
+  # 默认关闭，保持"clone 下来就能跑"的零配置体验；打开后文档与切块落 MySQL，重启不丢。
+  # 打开前先执行 db/schema.sql，并把 DB_PASSWORD 配到环境变量（别写死在这里）。
+  datasource:
+    # 注意：JDBC 的 characterEncoding 只认 UTF-8 这种 Java 编码名，
+    # 写成 utf8mb4 会直接抛 Unsupported character encoding 导致连不上
+    url: jdbc:mysql://${DB_HOST:127.0.0.1}:${DB_PORT:3306}/${DB_NAME:insightkb}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      # 数据库没起来时不要卡住启动流程，快速失败后退回内存模式由代码处理
+      connection-timeout: 3000
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+  mvc:
+    async:
+      # SSE 流式输出的超时时间（毫秒），过短会被浏览器误判连接中断
+      request-timeout: 180000
+
+  # --- Redis（M3：限流 + 会话热缓存）---
+  # 安装包在 D:/dev/redis（已就绪）；开发用无密码，仅绑定 127.0.0.1。
+  # 生产环境务必开启 requirepass / TLS，并把 host 换成内网地址或哨兵/集群。
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      database: 0
+      # password: ${REDIS_PASSWORD:}   # 开发环境未设密码；上线前取消注释并注入环境变量
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 1
+
+insightkb:
+  storage:
+    # 上传文件落盘目录，相对于启动时的工作目录
+    upload-dir: ./data/uploads
+    # 是否把文档元信息与切块写入 MySQL。false = 纯内存（重启即丢，零依赖）；
+    # true = 落库持久化，启动时自动从库里恢复索引。
+    persist: ${PERSIST_ENABLED:true}
+
+  llm:
+    # 运行模式：
+    #   mock   —— 零配置启动。本地哈希向量做检索 + 拼接式回答，用于跑通链路和联调
+    #   openai —— 调用 OpenAI 兼容接口（DeepSeek / 通义 / 智谱 / 硅基流动 均可）
+    # Key 一律用环境变量 LLM_API_KEY 注入（见 .env.local + run.bat），不要写死在这里
+    mode: openai
+
+    # --- 以下配置仅在 mode=openai 时生效 ---
+    # 注意这里要带上版本前缀（/v1 或 /api/paas/v4），代码会直接拼 /chat/completions
+    base-url: https://api.deepseek.com/v1
+    api-key: ${LLM_API_KEY:}
+    chat-model: deepseek-chat
+    # 向量模型。注意：DeepSeek 不提供 embedding 接口，
+    # 若切到 openai 模式请换成支持 embedding 的服务商，例如：
+    #   智谱    https://open.bigmodel.cn/api/paas/v4   embedding-3
+    #   硅基流动 https://api.siliconflow.cn/v1          BAAI/bge-m3
+    embedding-model: ""
+    # 仅向量走远端、对话仍走 mock 的开关（方便只申请到一个 Key 时先用起来）
+    # 注意：DeepSeek 不提供 embedding 接口，所以这里只能保持 mock（本地哈希向量）。
+    # 想拿到像样的语义召回，去硅基流动 / 智谱申请一个 Key 填进 LLM_API_KEY 与 embedding-model，
+    # 再把这里改成 openai —— 这是准确率数字能不能看的分水岭。
+    embedding-mode: mock
+
+  rag:
+    # 切块目标长度（字符）。太小会丢失上下文，太大则检索精度下降
+    chunk-size: 500
+    # 相邻切块的重叠字符数，避免答案正好被切在边界上
+    chunk-overlap: 100
+    # 最终送入大模型的片段数
+    top-k: 5
+    # 两路各自初筛的召回数，融合前的候选池大小
+    recall-k: 20
+
+    # --- 混合检索（M2）---
+    # 检索模式：vector（纯向量）/ keyword（纯 BM25）/ hybrid（两路 RRF 融合）
+    # 想量化"混合检索到底提升多少"时，把这里切成 vector 跑一遍基线，再切回 hybrid 跑一遍
+    retrieval-mode: hybrid
+    # RRF 平滑常数 k，越大越抹平排名差异，60 是社区常用默认值
+    rrf-k: 60
+    # 两路权重。默认 1:1；如果发现专有名词类查询召回差，把 keyword-weight 提到 1.5 试试
+    vector-weight: 1.0
+    keyword-weight: 1.0
+    # BM25 参数：k1 控制词频饱和，b 控制长度归一化强度
+    bm25-k1: 1.5
+    bm25-b: 0.75
+
+  # --- 限流（M3）---
+  # 单机用进程内令牌桶；多副本部署时把 TokenBucketLimiter 换成 Redis + Lua 版本即可，
+  # 接口不变。当前没有 Redis 环境，所以默认给的是进程内实现（见该类的注释）。
+  limit:
+    enabled: true
+    # 后端：auto（有 Redis 就用 Redis，否则进程内）/ redis / memory
+    backend: auto
+    # 匀速补充速率。问答接口要调模型，1 次/秒已经比大多数人的提问频率高
+    qps: 1.0
+    # 桶容量：允许的瞬时突发，给 5 是为了不误伤"连问两句"的真实用户
+    burst: 5
+
+  # --- 多轮对话记忆（M3）---
+  chat:
+    # 最近几轮完整消息进 Prompt（一轮 = 一问一答）
+    history-turns: 4
+    # 是否做"上下文查询改写"：把"它的功率是多少"改写成"Model X200 的额定功率是多少"
+    # 这一步对多轮检索质量的提升最明显，代价是多一次模型调用（约 0.3~0.8 秒）
+    query-rewrite: true
+    # 每几轮把较早的对话压成一次摘要
+    summary-every-turns: 6

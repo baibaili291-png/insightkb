@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InsightKB · 企业知识库问答</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<div class="app">
+
+    <!-- ============ 左侧：知识库 ============ -->
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-mark">IK</div>
+            <div class="brand-text">
+                <strong>InsightKB</strong>
+                <span>企业知识库问答</span>
+            </div>
+        </div>
+
+        <div class="upload-zone" id="uploadZone">
+            <input type="file" id="fileInput" accept=".pdf,.docx,.txt,.md" hidden multiple>
+            <div class="upload-icon">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <path d="M12 16V4M12 4L7 9M12 4l5 5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div class="upload-title">上传文档</div>
+            <div class="upload-hint">点击选择，或把文件拖到这里</div>
+            <div class="upload-types">PDF · DOCX · TXT · MD</div>
+        </div>
+
+        <div class="upload-progress" id="uploadProgress" hidden>
+            <div class="upload-progress-bar"><i id="uploadProgressFill"></i></div>
+            <div class="upload-progress-text" id="uploadProgressText"></div>
+        </div>
+
+        <div class="panel-head">
+            <span>知识库文档</span>
+            <span class="counter" id="docCounter">0</span>
+        </div>
+
+        <div class="doc-list" id="docList">
+            <div class="list-empty">还没有文档</div>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="stat-row"><span>切块总数</span><b id="statChunks">0</b></div>
+            <div class="stat-row"><span>向量维度</span><b id="statDim">-</b></div>
+            <div class="stat-row"><span>Embedding</span><b id="statEmbedding" class="ellipsis">-</b></div>
+            <div class="stat-row"><span>对话模型</span><b id="statChat" class="ellipsis">-</b></div>
+        </div>
+    </aside>
+
+    <!-- ============ 右侧：对话 ============ -->
+    <main class="main">
+        <header class="topbar">
+            <div>
+                <h1>知识库问答</h1>
+                <p id="topbarHint">基于混合检索的检索增强问答</p>
+            </div>
+            <div class="topbar-actions">
+                <div class="mode-badge" id="modeBadge" hidden>Mock 模式</div>
+                <button id="newChatBtn" class="ghost-btn" title="开启一段新对话，之前的上下文不再带入">新会话</button>
+            </div>
+        </header>
+
+        <div class="messages" id="messages">
+            <div class="empty-state" id="emptyState">
+                <div class="empty-title">先上传一份文档，然后开始提问</div>
+                <div class="empty-sub">答案会标注引用来源，点击角标可以查看原文片段</div>
+                <div class="empty-samples" id="emptySamples"></div>
+            </div>
+        </div>
+
+        <div class="composer">
+            <textarea id="questionInput" rows="1"
+                      placeholder="就知识库里的内容提问，Enter 发送，Shift + Enter 换行"></textarea>
+            <button id="sendBtn" class="send-btn" disabled>
+                <span>发送</span>
+            </button>
+        </div>
+    </main>
+
+</div>
+
+<script type="module" src="/js/app.js"></script>
+</body>
+</html>
