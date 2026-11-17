@@ -190,7 +190,13 @@ function hideUploadProgress() {
 function bindComposer() {
     dom.sendBtn.addEventListener('click', send);
 
-    dom.questionInput.addEventListener('input', autoGrow);
+    dom.questionInput.addEventListener('input', () => {
+        autoGrow();
+        // 按钮的可用状态之前只在 setStreaming() 里更新，而 setStreaming()
+        // 只在发送流程中被调用 —— 结果就是刚打开页面时按钮一直是灰的，
+        // 用户只能靠回车发送，鼠标点不动。输入框内容一变就要重算一次。
+        dom.sendBtn.disabled = store.streaming || dom.questionInput.value.trim() === '';
+    });
 
     dom.questionInput.addEventListener('keydown', (e) => {
         // Enter 发送、Shift+Enter 换行，是聊天类界面的通用约定
