@@ -59,8 +59,12 @@ jobs:
           # 注解在未登录状态也能看到，比 artifact 更好排查（artifact 要登录才能下载）。
           dump_log() {
             local rc=$?
-            echo "::error::冒烟失败（rc=$rc），app.log 末尾 60 行如下"
-            tail -n 60 app.log 2>/dev/null | while IFS= read -r line; do
+            echo "::error::冒烟失败（rc=$rc），先看异常行："
+            grep -E "Exception|Caused by|ERROR" app.log 2>/dev/null | head -n 25 | cut -c1-400 | while IFS= read -r line; do
+              echo "::error::${line}"
+            done
+            echo "::error::app.log 末尾 30 行："
+            tail -n 30 app.log 2>/dev/null | cut -c1-400 | while IFS= read -r line; do
               echo "::error::${line}"
             done
             return $rc
@@ -71,9 +75,12 @@ jobs:
           APP_PID=$!
           trap 'kill $APP_PID 2>/dev/null || true' EXIT
 
-          # 1) 等就绪：最多 120 秒。顺便盯着 java 进程，它要是先把日志写完退出了就别干等
+          # 1) 等就绪：最多 120 秒。顺便盯着 java 进程，它要是先把日志写完退出了就别干等。
+          # 注意这里不用 curl -sf：500 也要把响应体读出来，它才是原因所在。
+          HTTP=""
           for i in $(seq 1 60); do
-            if curl -sf "http://127.0.0.1:$PORT/api/system/info" -o info.json; then
+            HTTP=$(curl -s -o info.json -w '%{http_code}' "http://127.0.0.1:$PORT/api/system/info" || true)
+            if [ "$HTTP" = "200" ]; then
               echo "服务在第 $i 次探测就绪"
               break
             fi
@@ -81,9 +88,18 @@ jobs:
               echo "::error::java 进程在第 $i 次探测前就退出了"
               break
             fi
+            if [ "$HTTP" != "000" ] && [ -n "$HTTP" ]; then
+              echo "::error::/api/system/info 返回 $HTTP（第 $i 次探测），响应体："
+              head -c 600 info.json | while IFS= read -r line; do echo "::error::${line}"; done
+              false
+            fi
             sleep 2
           done
-          test -s info.json || { echo "::error::服务没能启动"; false; }
+          if [ "$HTTP" != "200" ]; then
+            echo "::error::/api/system/info 最终状态码 ${HTTP:-无响应}"
+            head -c 600 info.json 2>/dev/null | while IFS= read -r line; do echo "::error::${line}"; done
+            false
+          fi
           cat info.json
           # 断言 1：确实跑在 mock 模式（说明 CI 没偷偷依赖外部 Key）
           grep -q '"code":0' info.json
