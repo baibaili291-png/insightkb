@@ -8,6 +8,12 @@ data/
 *.log
 .port.txt
 
+# 调试时随手落到根目录的临时文件（不属于源码，别跟着提交）
+.chat-out.txt
+.q.txt
+.run*.log
+.build*.log
+
 # 密钥：绝不能进版本库
 .env.local
 # docker compose 的 env 文件（可能含密钥），同样不进版本库
