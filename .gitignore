@@ -24,3 +24,10 @@ data/
 *.iml
 .vscode/
 .DS_Store
+
+# CI 冒烟脚本在仓库根目录落下的临时产物（本地复现 CI 时会产生）
+info.json
+docs.json
+upload.json
+body.json
+stream.txt
