@@ -38,6 +38,20 @@ public class MetricsService {
 
     private final StringRedisTemplate redis;
 
+    /**
+     * Redis 是否已经被判定为"连不上"。
+     *
+     * 关键区别：redis != null 只证明容器里有这个 bean（只要 classpath 上有
+     * spring-boot-starter-data-redis，Spring Boot 就会自动装配 StringRedisTemplate，
+     * 跟服务端有没有在 6379 上监听毫无关系），并不证明 Redis 真的能用。
+     * 之前这里拿 null 当"有没有 Redis"，于是在没有 Redis 的环境（CI runner）里
+     * 依然走 Redis 分支，GET 直接抛 RedisConnectionFailureException，
+     * 把只读的 /api/system/info 打成了 500 —— 而它正是启动探针用的接口。
+     * 一面板挂了不该让健康检查一起挂，所以这里第一次失败就永久退化到进程内计数，
+     * 与 RateLimiterConfig 里"ping 不通就退回进程内令牌桶"的判定口径保持一致。
+     */
+    private volatile boolean redisDead;
+
     // 无 Redis 时的退化实现：环形数组保存最近 60 秒计数
     private final AtomicLong inMemTotal = new AtomicLong(0);
     private final AtomicLong[] ring = new AtomicLong[60];
@@ -54,7 +68,7 @@ public class MetricsService {
     /** 每收到一个问答请求调用一次：把计数 +1。失败静默，绝不影响主流程。 */
     public void recordRequest() {
         long sec = Instant.now().getEpochSecond();
-        if (redis != null) {
+        if (redisUsable()) {
             try {
                 String qk = QPS_KEY + sec;
                 redis.opsForValue().increment(qk);
@@ -63,10 +77,11 @@ public class MetricsService {
                 String mk = MIN_KEY + (sec / 60);
                 redis.opsForValue().increment(mk);
                 redis.expire(mk, Duration.ofSeconds(130)); // 分钟桶留 130 秒，够回看 60 秒窗口
+                return;
             } catch (Exception e) {
-                log.warn("记录请求指标失败：{}", e.getMessage());
+                // 不 return：这一次的计数直接记进下面的进程内实现，别丢
+                markRedisDead(e);
             }
-            return;
         }
         // 退化：进程内计数
         inMemTotal.incrementAndGet();
@@ -78,39 +93,66 @@ public class MetricsService {
         ring[idx].incrementAndGet();
     }
 
-    /** 当前指标快照，喂给 /api/system/info */
+    /**
+     * 当前指标快照，喂给 /api/system/info。
+     *
+     * 这个接口必须永远返回 200：它是启动探针和前端顶栏共用的信息接口，
+     * 指标里任何一项取不到都只该退化成 0 / 进程内数字，而不是抛出去变成 500。
+     */
     public Map<String, Object> snapshot() {
         Map<String, Object> m = new LinkedHashMap<>();
-        m.put("backend", redis != null ? "redis" : "in-memory");
-        if (redis != null) {
-            long sec = Instant.now().getEpochSecond();
-            long cur = toLong(redis.opsForValue().get(QPS_KEY + sec));
-            long prev = toLong(redis.opsForValue().get(QPS_KEY + (sec - 1)));
-            long total = toLong(redis.opsForValue().get(TOTAL_KEY));
-            long window = 0;
-            for (int i = 0; i < 60; i++) {
-                window += toLong(redis.opsForValue().get(MIN_KEY + (sec / 60 - i)));
+        if (redisUsable()) {
+            try {
+                long sec = Instant.now().getEpochSecond();
+                long cur = toLong(redis.opsForValue().get(QPS_KEY + sec));
+                long prev = toLong(redis.opsForValue().get(QPS_KEY + (sec - 1)));
+                long total = toLong(redis.opsForValue().get(TOTAL_KEY));
+                long window = 0;
+                for (int i = 0; i < 60; i++) {
+                    window += toLong(redis.opsForValue().get(MIN_KEY + (sec / 60 - i)));
+                }
+                m.put("backend", "redis");
+                m.put("redisFallback", false);
+                m.put("qps", cur);
+                m.put("qps2s", cur + prev);
+                m.put("total", total);
+                m.put("window60s", window);
+                return m;
+            } catch (Exception e) {
+                // 还没往 m 里放过任何东西，直接落到下面的进程内分支即可
+                markRedisDead(e);
             }
-            m.put("qps", cur);
-            m.put("qps2s", cur + prev);
-            m.put("total", total);
-            m.put("window60s", window);
-        } else {
-            long sec = Instant.now().getEpochSecond();
-            int idx = (int) ((sec % 60 + 60) % 60);
-            long cur = ringSec[idx] == sec ? ring[idx].get() : 0;
-            int pidx = (int) (((sec - 1) % 60 + 60) % 60);
-            long prev = ringSec[pidx] == sec - 1 ? ring[pidx].get() : 0;
-            long window = 0;
-            for (int i = 0; i < 60; i++) {
-                window += ring[i].get();
-            }
-            m.put("qps", cur);
-            m.put("qps2s", cur + prev);
-            m.put("total", inMemTotal.get());
-            m.put("window60s", window);
         }
+        long sec = Instant.now().getEpochSecond();
+        int idx = (int) ((sec % 60 + 60) % 60);
+        long cur = ringSec[idx] == sec ? ring[idx].get() : 0;
+        int pidx = (int) (((sec - 1) % 60 + 60) % 60);
+        long prev = ringSec[pidx] == sec - 1 ? ring[pidx].get() : 0;
+        long window = 0;
+        for (int i = 0; i < 60; i++) {
+            window += ring[i].get();
+        }
+        // backend 保持 "redis" / "in-memory" 两个稳定取值，别往里塞形容词：
+        // 有代码会按字符串分支，退化原因单独用 redisFallback 表达（配了 Redis 但没连上）
+        m.put("backend", "in-memory");
+        m.put("redisFallback", redis != null);
+        m.put("qps", cur);
+        m.put("qps2s", cur + prev);
+        m.put("total", inMemTotal.get());
+        m.put("window60s", window);
         return m;
+    }
+
+    /** Redis bean 在 ≠ Redis 能用：被判死过就再也不试，避免每个请求都白等一次连接超时 */
+    private boolean redisUsable() {
+        return redis != null && !redisDead;
+    }
+
+    private void markRedisDead(Exception e) {
+        if (!redisDead) {
+            redisDead = true;
+            log.warn("Redis 不可用（{}），请求指标退化为进程内计数", e.getMessage());
+        }
     }
 
     private long toLong(String s) {
