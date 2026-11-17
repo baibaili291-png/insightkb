@@ -31,3 +31,6 @@ docs.json
 upload.json
 body.json
 stream.txt
+
+# 本机专用的 Maven 仓库路径（写死 D:/dev/maven-repo，进 CI 会解析失败），只留在本地
+.mvn/maven.config
