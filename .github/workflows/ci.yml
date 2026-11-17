@@ -7,6 +7,9 @@ name: CI
 # 本地等价命令（不联网也能复现）：
 #   INSIGHTKB_LLM_MODE=mock PERSIST_ENABLED=false INSIGHTKB_LIMIT_BACKEND=memory \
 #     java -jar target/insightkb.jar --server.port=52116
+#
+# 设计约束：启动与应用探测必须写在**同一个 step**里。跨 step 的后台进程在有些 runner 上
+# 会被回收，分开写会出现"上一步明明起来了，下一步 connection refused"的幽灵失败。
 
 on:
   push:
@@ -22,7 +25,7 @@ jobs:
   build-and-smoke:
     name: 编译 + 启动 + 端到端冒烟
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       PORT: "8080"
       # 对应 application.yml 的 insightkb.llm.mode / storage.persist / limit.backend
@@ -42,37 +45,45 @@ jobs:
           cache: maven
 
       - name: 打包可执行 jar
-        run: mvn -B -DskipTests package
+        run: |
+          java -version
+          mvn -v
+          mvn -B -DskipTests package
+          ls -lh target/insightkb.jar
 
-      - name: 启动服务并等它真的就绪
+      - name: 启动服务 + 端到端冒烟
         run: |
           set -euo pipefail
-          nohup java -jar target/insightkb.jar --server.port="$PORT" > app.log 2>&1 &
-          for i in $(seq 1 60); do
+
+          # 失败时把应用日志打出来，否则 runner 上什么都看不见
+          trap 'echo "::group::app.log"; tail -n 120 app.log 2>/dev/null || true; echo "::endgroup::"' ERR
+
+          java -jar target/insightkb.jar --server.port="$PORT" > app.log 2>&1 &
+          APP_PID=$!
+          trap 'kill $APP_PID 2>/dev/null || true' EXIT
+
+          # 1) 等就绪：最多 90 秒
+          for i in $(seq 1 45); do
             if curl -sf "http://127.0.0.1:$PORT/api/system/info" -o info.json; then
               echo "服务在第 $i 次探测就绪"
               break
             fi
             sleep 2
           done
-          test -s info.json || { echo "::error::服务没能启动"; tail -n 60 app.log; exit 1; }
+          test -s info.json || { echo "::error::服务没能启动"; tail -n 120 app.log; exit 1; }
           cat info.json
           # 断言 1：确实跑在 mock 模式（说明 CI 没偷偷依赖外部 Key）
           grep -q '"code":0' info.json
           grep -q '"mockChat":true' info.json
 
-      - name: 冒烟——上传 → 切块 → 混合检索 → SSE 流式回答
-        run: |
-          set -euo pipefail
-
-          # 1) 上传样例文档。接口是异步的，立刻返回 PROCESSING
+          # 2) 上传样例文档。接口是异步的，立刻返回 PROCESSING
           curl -sf -X POST \
             -F "file=@samples/设备运维手册-X200.md;filename=x200-manual.md" \
             "http://127.0.0.1:$PORT/api/documents" -o upload.json
           cat upload.json
           grep -q '"code":0' upload.json
 
-          # 2) 轮询到 READY 且 chunkCount > 0，证明清洗/切片/建索引这条链真的跑通了
+          # 3) 轮询到 READY 且 chunkCount > 0，证明清洗/切片/建索引这条链真的跑通了
           for i in $(seq 1 20); do
             curl -sf "http://127.0.0.1:$PORT/api/documents" -o docs.json
             if grep -q '"status":"READY"' docs.json && grep -qE '"chunkCount":[1-9]' docs.json; then
@@ -85,7 +96,7 @@ jobs:
           grep -q '"status":"READY"' docs.json
           grep -qE '"chunkCount":[1-9]' docs.json
 
-          # 3) 问答：注意是 /api/chat/stream（POST /api/chat 是 500）
+          # 4) 问答：注意是 /api/chat/stream（POST /api/chat 是 500）
           printf '%s' '{"question":"X200 的额定功率是多少？","conversationId":"ci-smoke"}' > body.json
           curl -sf -N -X POST -H "Content-Type: application/json" \
             --data-binary @body.json \
@@ -101,15 +112,16 @@ jobs:
           fi
           echo "冒烟通过 ✅"
 
-      - name: 失败时把应用日志带上来
+      - name: 失败时把日志带上来
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: app-log
+          name: smoke-logs
           path: |
             app.log
             info.json
             docs.json
             stream.txt
+            upload.json
           if-no-files-found: ignore
           retention-days: 7
