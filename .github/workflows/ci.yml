@@ -60,11 +60,15 @@ jobs:
           dump_log() {
             local rc=$?
             echo "::error::冒烟失败（rc=$rc），先看异常行："
-            grep -E "Exception|Caused by|ERROR" app.log 2>/dev/null | head -n 25 | cut -c1-400 | while IFS= read -r line; do
+            grep -E "Exception|Caused by|ERROR" app.log 2>/dev/null | head -n 12 | cut -c1-300 | while IFS= read -r line; do
               echo "::error::${line}"
             done
-            echo "::error::app.log 末尾 30 行："
-            tail -n 30 app.log 2>/dev/null | cut -c1-400 | while IFS= read -r line; do
+            echo "::error::再看异常栈里的业务代码帧："
+            grep -E "^\s+at com\.insightkb" app.log 2>/dev/null | head -n 12 | cut -c1-300 | while IFS= read -r line; do
+              echo "::error::${line}"
+            done
+            echo "::error::app.log 里的 WARN/INFO 摘要："
+            grep -E "WARN|限流后端|持久化|Redis" app.log 2>/dev/null | head -n 10 | cut -c1-300 | while IFS= read -r line; do
               echo "::error::${line}"
             done
             return $rc
