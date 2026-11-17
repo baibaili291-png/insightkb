@@ -55,22 +55,35 @@ jobs:
         run: |
           set -euo pipefail
 
-          # 失败时把应用日志打出来，否则 runner 上什么都看不见
-          trap 'echo "::group::app.log"; tail -n 120 app.log 2>/dev/null || true; echo "::endgroup::"' ERR
+          # 失败时把 app.log 的末尾逐行打成 ::error:: 注解。
+          # 注解在未登录状态也能看到，比 artifact 更好排查（artifact 要登录才能下载）。
+          dump_log() {
+            local rc=$?
+            echo "::error::冒烟失败（rc=$rc），app.log 末尾 60 行如下"
+            tail -n 60 app.log 2>/dev/null | while IFS= read -r line; do
+              echo "::error::${line}"
+            done
+            return $rc
+          }
+          trap dump_log ERR
 
           java -jar target/insightkb.jar --server.port="$PORT" > app.log 2>&1 &
           APP_PID=$!
           trap 'kill $APP_PID 2>/dev/null || true' EXIT
 
-          # 1) 等就绪：最多 90 秒
-          for i in $(seq 1 45); do
+          # 1) 等就绪：最多 120 秒。顺便盯着 java 进程，它要是先把日志写完退出了就别干等
+          for i in $(seq 1 60); do
             if curl -sf "http://127.0.0.1:$PORT/api/system/info" -o info.json; then
               echo "服务在第 $i 次探测就绪"
               break
             fi
+            if ! kill -0 "$APP_PID" 2>/dev/null; then
+              echo "::error::java 进程在第 $i 次探测前就退出了"
+              break
+            fi
             sleep 2
           done
-          test -s info.json || { echo "::error::服务没能启动"; tail -n 120 app.log; exit 1; }
+          test -s info.json || { echo "::error::服务没能启动"; false; }
           cat info.json
           # 断言 1：确实跑在 mock 模式（说明 CI 没偷偷依赖外部 Key）
           grep -q '"code":0' info.json
