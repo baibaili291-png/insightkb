@@ -1,5 +1,10 @@
 # InsightKB · 企业知识库问答平台
 
+[![CI](https://github.com/baibaili291-png/insightkb/actions/workflows/ci.yml/badge.svg)](https://github.com/baibaili291-png/insightkb/actions/workflows/ci.yml)
+
+> CI 做的事很实在：编译 → 用 `mock` 模式把服务真起起来（不需要 MySQL / Redis / API Key）→ 上传样例文档 → 等切块完成 → 打一次 `/api/chat/stream` 断言 SSE 有增量输出且没走降级分支。
+> 换句话说，**徽章绿了就等于"这张提交真的能跑"**。
+
 上传 PDF / Word / Markdown 文档，用自然语言提问，返回**带引用出处**的答案。
 
 后端 Spring Boot 3 + Java 21，前端原生 HTML/CSS/JavaScript（不依赖任何前端框架）。

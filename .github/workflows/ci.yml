@@ -1,0 +1,115 @@
+name: CI
+
+# 这个流水线回答一个问题：「这张提交真的还能跑起来吗？」
+# 它不测准确率（那要真模型 + 真 Key，见 eval/），只做编译 + 启动 + 冒烟。
+# 关键点：mock 模式让 CI 不依赖 MySQL / Redis / 任何 API Key，公共 runner 上零配置可跑。
+#
+# 本地等价命令（不联网也能复现）：
+#   INSIGHTKB_LLM_MODE=mock PERSIST_ENABLED=false INSIGHTKB_LIMIT_BACKEND=memory \
+#     java -jar target/insightkb.jar --server.port=52116
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-smoke:
+    name: 编译 + 启动 + 端到端冒烟
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PORT: "8080"
+      # 对应 application.yml 的 insightkb.llm.mode / storage.persist / limit.backend
+      # Spring Boot 宽松绑定：环境变量 INSIGHTKB_LLM_MODE 会覆盖 insightkb.llm.mode
+      INSIGHTKB_LLM_MODE: mock
+      PERSIST_ENABLED: "false"
+      INSIGHTKB_LIMIT_BACKEND: memory
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 装 JDK 21（项目用到虚拟线程 / record）
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: 打包可执行 jar
+        run: mvn -B -DskipTests package
+
+      - name: 启动服务并等它真的就绪
+        run: |
+          set -euo pipefail
+          nohup java -jar target/insightkb.jar --server.port="$PORT" > app.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -sf "http://127.0.0.1:$PORT/api/system/info" -o info.json; then
+              echo "服务在第 $i 次探测就绪"
+              break
+            fi
+            sleep 2
+          done
+          test -s info.json || { echo "::error::服务没能启动"; tail -n 60 app.log; exit 1; }
+          cat info.json
+          # 断言 1：确实跑在 mock 模式（说明 CI 没偷偷依赖外部 Key）
+          grep -q '"code":0' info.json
+          grep -q '"mockChat":true' info.json
+
+      - name: 冒烟——上传 → 切块 → 混合检索 → SSE 流式回答
+        run: |
+          set -euo pipefail
+
+          # 1) 上传样例文档。接口是异步的，立刻返回 PROCESSING
+          curl -sf -X POST \
+            -F "file=@samples/设备运维手册-X200.md;filename=x200-manual.md" \
+            "http://127.0.0.1:$PORT/api/documents" -o upload.json
+          cat upload.json
+          grep -q '"code":0' upload.json
+
+          # 2) 轮询到 READY 且 chunkCount > 0，证明清洗/切片/建索引这条链真的跑通了
+          for i in $(seq 1 20); do
+            curl -sf "http://127.0.0.1:$PORT/api/documents" -o docs.json
+            if grep -q '"status":"READY"' docs.json && grep -qE '"chunkCount":[1-9]' docs.json; then
+              echo "切块完成（第 $i 次轮询）"
+              break
+            fi
+            sleep 1
+          done
+          cat docs.json
+          grep -q '"status":"READY"' docs.json
+          grep -qE '"chunkCount":[1-9]' docs.json
+
+          # 3) 问答：注意是 /api/chat/stream（POST /api/chat 是 500）
+          printf '%s' '{"question":"X200 的额定功率是多少？","conversationId":"ci-smoke"}' > body.json
+          curl -sf -N -X POST -H "Content-Type: application/json" \
+            --data-binary @body.json \
+            "http://127.0.0.1:$PORT/api/chat/stream" -o stream.txt
+
+          # 断言 2：SSE 有增量输出，且有结束事件
+          grep -q '"type":"delta"' stream.txt
+          grep -q '"type":"done"' stream.txt
+          # 断言 3：没有走降级分支（degraded=true 意味着模型调用失败、只回检索片段）
+          if grep -q '"degraded":true' stream.txt; then
+            echo "::error::问答走了降级分支，模型调用没成功"
+            exit 1
+          fi
+          echo "冒烟通过 ✅"
+
+      - name: 失败时把应用日志带上来
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-log
+          path: |
+            app.log
+            info.json
+            docs.json
+            stream.txt
+          if-no-files-found: ignore
+          retention-days: 7
