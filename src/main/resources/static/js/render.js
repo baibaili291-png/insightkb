@@ -161,13 +161,67 @@ export function createUserMessage(scrollContainer, text) {
 }
 
 /**
- * 渲染答案正文，并把 [1] [2] 这类引用标记变成可点击的角标。
- * 先转义再替换：如果顺序反了，文档内容里的 HTML 会被当成标签执行。
+ * 渲染答案正文：把 [1] [2] 这类引用标记变成可点击的角标，
+ * 同时把模型输出里最常见的几种 markdown 解析掉。
+ *
+ * 顺序很重要：先转义、再解析、最后替换引用角标。
+ * 如果先解析再转义，文档里的 HTML 会被当成标签执行；
+ * 如果先替换角标再转义，角标自身也会被转义成纯文本。
  */
 export function renderAnswerText(node, text) {
     const safe = escapeHtml(text);
-    node.innerHTML = safe.replace(/\[(\d+)\]/g,
-        (match, n) => `<span class="cite" data-cite="${n}">${n}</span>`);
+    node.innerHTML = renderMarkdown(safe)
+        .replace(/\[(\d+)\]/g, (match, n) => `<span class="cite" data-cite="${n}">${n}</span>`);
+}
+
+/**
+ * 极简 markdown：只处理模型答问时真正会出现的三种结构——
+ * 行内 `**加粗**` / `` `代码` ``、无序列表项、`#` 标题。
+ *
+ * 不复用成熟库是有意的：本项目前端零依赖，为三种语法引入 30KB 的
+ * markdown 解析器不划算；而且完整解析器会放行 <table>、<img> 这类
+ * 需要额外兜底的输出，反而扩大注入面。
+ */
+function renderMarkdown(escaped) {
+    const blocks = [];
+    let list = null;
+
+    const flushList = () => {
+        if (list) {
+            blocks.push(`<ul class="md-list">${list.join('')}</ul>`);
+            list = null;
+        }
+    };
+
+    for (const rawLine of escaped.split('\n')) {
+        const item = /^\s*[-*+]\s+(.*)$/.exec(rawLine);
+        if (item) {
+            if (!list) {
+                list = [];
+            }
+            list.push(`<li>${renderInline(item[1])}</li>`);
+            continue;
+        }
+
+        flushList();
+
+        const heading = /^\s*#{1,6}\s+(.*)$/.exec(rawLine);
+        if (heading) {
+            blocks.push(`<p class="md-heading">${renderInline(heading[1])}</p>`);
+            continue;
+        }
+
+        blocks.push(renderInline(rawLine));
+    }
+
+    flushList();
+    return blocks.join('\n');
+}
+
+function renderInline(line) {
+    return line
+        .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/`([^`\n]+)`/g, '<code>$1</code>');
 }
 
 function appendCursor(textNode) {

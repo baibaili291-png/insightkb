@@ -497,6 +497,28 @@ body {
     font-family: ui-monospace, Consolas, monospace;
 }
 
+/* renderAnswerText 解析出来的结构。pre-wrap 会让换行原样保留，
+   所以列表自己带缩进、不再额外塞空行 */
+.msg-text .md-list {
+    margin: 2px 0 9px;
+    padding-left: 18px;
+    list-style: disc;
+}
+
+.msg-text .md-list li {
+    margin: 1px 0;
+}
+
+.msg-text .md-heading {
+    font-weight: 600;
+    margin: 4px 0 6px;
+}
+
+.msg-text strong {
+    font-weight: 600;
+    color: var(--ink);
+}
+
 /* 引用角标 */
 .cite {
     display: inline-block;
